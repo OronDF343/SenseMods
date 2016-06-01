@@ -21,6 +21,7 @@ import android.content.Context;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
@@ -30,19 +31,34 @@ import static de.robv.android.xposed.XposedHelpers.findClass;
 public class SenseMods implements IXposedHookLoadPackage {
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        if(!"com.htc.launcher".equals(lpparam.packageName)) {
-            return;
+        if("com.htc.launcher".equals(lpparam.packageName)) {
+            // Infinifolders
+            XposedBridge.log("[SenseMods] Hooked to Sense Home process");
+            final Class<?> folderInfoClass = findClass("com.htc.launcher.folder.FolderInfo", lpparam.classLoader);
+            final Class<?> itemInfoClass = findClass("com.htc.launcher.ItemInfo", lpparam.classLoader);
+            findAndHookMethod("com.htc.launcher.folder.Folder", lpparam.classLoader, "getFolderMaxPages", folderInfoClass, Context.class, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    Object folderInfo = param.args[0];
+                    Integer folderType = (Integer) itemInfoClass.getDeclaredMethod("getItemType").invoke(folderInfo);
+                    if (folderType == 3) param.setResult(-1);
+                }
+            });
+        } else if ("android".equals(lpparam.packageName)) {
+            // Volume to wake:
+            findAndHookMethod("android.view.KeyEvent", lpparam.classLoader, "isWakeKey", int.class, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if (param.args[0].equals(24) || param.args[0].equals(25)) param.setResult(true);
+                }
+            });
+            findAndHookMethod("com.android.server.policy.PhoneWindowManager", lpparam.classLoader, "isWakeKeyWhenScreenOff", int.class, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if (param.args[0].equals(24) || param.args[0].equals(25)) param.setResult(true);
+                }
+            });
+            XposedBridge.log("[SenseMods] Hooked isWakeKey and isWakeKeyWhenScreenOff");
         }
-        XposedBridge.log("[SenseMods] Attached to Sense Home process");
-        final Class<?> folderInfoClass = findClass("com.htc.launcher.folder.FolderInfo", lpparam.classLoader);
-        final Class<?> itemInfoClass = findClass("com.htc.launcher.ItemInfo", lpparam.classLoader);
-        findAndHookMethod("com.htc.launcher.folder.Folder", lpparam.classLoader, "getFolderMaxPages", folderInfoClass, Context.class, new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                Object folderInfo = param.args[0];
-                Integer folderType = (Integer) itemInfoClass.getDeclaredMethod("getItemType").invoke(folderInfo);
-                if (folderType == 3) param.setResult(-1);
-            }
-        });
     }
 }

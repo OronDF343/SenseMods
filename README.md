@@ -4,6 +4,7 @@ Collection of Xposed mods for HTC Sense on Android 6.
 Currently, the following features are available:
 
 * Unlimited number of apps in each folder (also known as "Infinifolders")
+* Use volume buttons to wake the device (AOSP-compatible code!)
 
 # License
 ![GPLv3 Logo](http://www.gnu.org/graphics/gplv3-127x51.png?raw=true)
